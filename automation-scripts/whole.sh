@@ -66,11 +66,11 @@ fi
 cd "$landing_zone_path/0-bootstrap"
 ./prep.sh tf_local
 
-# Replace configuration values
-sed -i'' -e "s/ORG_ID_REPLACE_ME/${ORG_ID}/" ./terraform.tfvars
-sed -i'' -e "s/BILLING_ID_REPLACE_ME/${BILLING_ID}/" ./terraform.tfvars
-sed -i'' -e "s/PARENT_FOLDER_REPLACE_ME/${ROOT_FOLDER_ID}/" ./terraform.tfvars
-sed -i'' -e "s/DEFAULT_REGION_REPLACE_ME/${REGION}/" ./terraform.tfvars
+# Replace configuration values using a different delimiter for sed
+sed -i'' -e "s|ORG_ID_REPLACE_ME|${ORG_ID}|" ./terraform.tfvars
+sed -i'' -e "s|BILLING_ID_REPLACE_ME|${BILLING_ID}|" ./terraform.tfvars
+sed -i'' -e "s|PARENT_FOLDER_REPLACE_ME|${ROOT_FOLDER_ID}|" ./terraform.tfvars
+sed -i'' -e "s|DEFAULT_REGION_REPLACE_ME|${REGION}|" ./terraform.tfvars
 
 # Initialize and validate configuration
 terraform init
