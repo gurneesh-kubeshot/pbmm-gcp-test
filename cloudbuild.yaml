@@ -1,8 +1,18 @@
 steps:
   #Clone the repository
   - name: gcr.io/cloud-builders/git
-    args: ['clone', '--branch', 'tef_integration_baseline', 'https://source.developers.google.com/p/sa-test-gcp/r/tef-gcp-lz-gsr']
+    args: ['clone', '--branch', 'main', 'https://github.com/gurneesh-kubeshot/pbmm-gcp-test.git']
     id: 'check-out-source'
+
+  # Get the service account key from Secret Manager
+  - name: gcr.io/cloud-builders/gcloud
+    id: 'get-sa-key'
+    entrypoint: 'bash'
+    args:
+    - -c
+    - |
+      echo "$$SECRET" > /workspace/sa-key.json
+    secretEnv: ['SECRET']
 
   - id: 'Install Tools and Perform Deployment'
     name: gcr.io/cloud-builders/gcloud
@@ -10,7 +20,7 @@ steps:
     args:
     - -c
     - |
-      gcloud auth application-default login --impersonate-service-account sa-gcp-partners-test@sa-test-gcp.iam.gserviceaccount.com --quiet 
+      cd pbmm-gcp-test
       curl -fsSL https://apt.releases.hashicorp.com/gpg |  apt-key add -
       apt-add-repository "deb [arch=amd64] https://apt.releases.hashicorp.com $(lsb_release -cs) main"
       apt-get install -y wget unzip
@@ -25,7 +35,6 @@ steps:
       apt-get install jq -y
       apt update && apt install python3  # Installs latest Python 3 version
       ls -l
-      # python3 ./fix_tfvars_symlinks.py .
       find . -type f -name "*.sh" | xargs chmod a+x
       find . -type f -name "*.sh" | xargs dos2unix
       export SUPER_ADMIN_EMAIL=$_SUPER_ADMIN_EMAIL
@@ -34,14 +43,29 @@ steps:
       export ROOT_FOLDER_ID=${_ROOT_FOLDER_ID}
       export BILLING_ID=${_BILLING_ID}
       export DOMAIN=${_DOMAIN}
-      echo ${_DOMAIN}
-      echo $_SUPER_ADMIN_EMAIL
-      echo ${_REGION}
-      echo ${_ORG_ID}
-      echo ${_ROOT_FOLDER_ID}
-      echo ${_BILLING_ID}
+      echo "Environment variables set:"
+      echo "DOMAIN: ${_DOMAIN}"
+      echo "REGION: ${_REGION}"
+      echo "ORG_ID: ${_ORG_ID}"
+      echo "ROOT_FOLDER_ID: ${_ROOT_FOLDER_ID}"
+      echo "BILLING_ID: ${_BILLING_ID}"
       chmod +x automation-scripts/whole.sh
       chmod +x ./0-bootstrap/prep.sh
-      sh ./automation-scripts/whole.sh 
+      ./automation-scripts/whole.sh -k /workspace/sa-key.json -p ${_PROJECT_ID} -m plan
 
 logsBucket: 'gs://tef-cb-logs-bucket/cloudbuild-logs'
+
+availableSecrets:
+  secretManager:
+  - versionName: projects/${_PROJECT_ID}/secrets/${_SA_KEY_SECRET}/versions/latest
+    env: 'SECRET'
+
+substitutions:
+  _PROJECT_ID: '' # Project ID where secrets are stored
+  _SA_KEY_SECRET: 'terraform-sa-key' # Name of the secret containing the service account key
+  _SUPER_ADMIN_EMAIL: ''
+  _REGION: ''
+  _ORG_ID: ''
+  _ROOT_FOLDER_ID: ''
+  _BILLING_ID: ''
+  _DOMAIN: ''

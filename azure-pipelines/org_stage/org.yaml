@@ -50,8 +50,8 @@ stages:
         echo "which sa is activated"
         gcloud auth list
         # python3 ./fix_tfvars_symlinks.py .
-        gcloud auth activate-service-account sa-gcp-partners-test@sa-test-gcp.iam.gserviceaccount.com --key-file=$(googleCredentials.secureFilePath)
-        gcloud config set project sa-test-gcp
+        gcloud auth activate-service-account labels-app-sa@vratant-test-prj.iam.gserviceaccount.com --key-file=$(googleCredentials.secureFilePath)
+        gcloud config set project vratant-test-prj
         echo "which sa is activated"
         gcloud auth list
         chmod +x ./scripts/validate-requirements.sh

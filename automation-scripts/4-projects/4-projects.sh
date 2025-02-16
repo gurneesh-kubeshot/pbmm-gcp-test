@@ -52,7 +52,7 @@ cat ./business_units/production/production.auto.tfvars
 set +e
 ./tf-wrapper.sh validate shared $(pwd)/../policy-library ${CLOUD_BUILD_PROJECT_ID}
 set -xe
-./tf-wrapper.sh apply shared
+#./tf-wrapper.sh apply shared
 
 # Run all tf-wrapper commands
 ./tf-wrapper.sh init production
@@ -60,7 +60,7 @@ set -xe
 set +e
 ./tf-wrapper.sh validate production $(pwd)/../policy-library ${CLOUD_BUILD_PROJECT_ID}
 set -xe
-./tf-wrapper.sh apply production
+#./tf-wrapper.sh apply production
 
 #Terraform init,plan,validate,apply for nonproduction env
 ./tf-wrapper.sh init nonproduction
@@ -68,7 +68,7 @@ set -xe
 set +e
 ./tf-wrapper.sh validate nonproduction $(pwd)/../policy-library ${CLOUD_BUILD_PROJECT_ID}
 set -xe
-./tf-wrapper.sh apply nonproduction
+#./tf-wrapper.sh apply nonproduction
 
 MAX_RETRIES=3  # Adjust as needed
 attempts=0
@@ -79,7 +79,7 @@ while [[ $attempts -lt $MAX_RETRIES ]]; do
   set +e
   ./tf-wrapper.sh validate development $(pwd)/../policy-library ${CLOUD_BUILD_PROJECT_ID}
   set -xe
-  ./tf-wrapper.sh apply development
+#  ./tf-wrapper.sh apply development
 
   if [[ $? -ne 0 ]]; then
     echo "Error: 4-projects development commands failed. Retrying..."
@@ -95,14 +95,14 @@ done
 set +e
 ./tf-wrapper.sh validate management $(pwd)/../policy-library ${CLOUD_BUILD_PROJECT_ID}
 set -xe
-./tf-wrapper.sh apply management
+#./tf-wrapper.sh apply management
 
 ./tf-wrapper.sh init identity
 ./tf-wrapper.sh plan identity
 set +e
 ./tf-wrapper.sh validate identity $(pwd)/../policy-library ${CLOUD_BUILD_PROJECT_ID}
 set -xe
-./tf-wrapper.sh apply identity
+#./tf-wrapper.sh apply identity
 set +e
 
 

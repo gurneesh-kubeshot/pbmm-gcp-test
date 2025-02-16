@@ -5,7 +5,7 @@ set -xe
 base_dir=$(pwd)
 # Defin variables
 
-export GOOGLE_IMPERSONATE_SERVICE_ACCOUNT=sa-gcp-partners-test@sa-test-gcp.iam.gserviceaccount.com
+export GOOGLE_IMPERSONATE_SERVICE_ACCOUNT=labels-app-sa@vratant-test-prj.iam.gserviceaccount.com
 
 cd $base_dir/1-org
 ls ./envs/shared/
@@ -54,7 +54,7 @@ cat ./envs/shared/terraform.tfvars
 ./tf-wrapper.sh plan production
 set +e
 ./tf-wrapper.sh validate production $(pwd)/../policy-library ${CLOUD_BUILD_PROJECT_ID}
-./tf-wrapper.sh apply production
+#./tf-wrapper.sh apply production
 set +e
 
 unset GOOGLE_IMPERSONATE_SERVICE_ACCOUNT

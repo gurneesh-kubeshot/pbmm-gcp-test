@@ -45,7 +45,7 @@ set -xe
 
 terraform plan -input=false -out org_policy_common.tfplan
 
-terraform apply org_policy_common.tfplan
+#terraform apply org_policy_common.tfplan
 
 cd ..
 pwd
@@ -60,7 +60,7 @@ set -xe
 
 terraform plan -input=false -out org_policy_development.tfplan
 
-terraform apply org_policy_development.tfplan
+#terraform apply org_policy_development.tfplan
 
 cd ..
 pwd
@@ -74,7 +74,7 @@ set -xe
 # Run Terraform plan and apply
 terraform plan -input=false -out org_policy_nonproduction.tfplan
 
-terraform apply org_policy_nonproduction.tfplan
+#terraform apply org_policy_nonproduction.tfplan
 
 cd ..
 pwd
@@ -88,7 +88,7 @@ set -xe
 # Run Terraform plan and apply
 terraform plan -input=false -out org_policy_production.tfplan
 
-terraform apply org_policy_production.tfplan
+#terraform apply org_policy_production.tfplan
 
 cd ..
 pwd

@@ -62,14 +62,14 @@ cat ./envs/production/common.auto.tfvars
 set +e
 ./tf-wrapper.sh validate shared $(pwd)/../policy-library ${CLOUD_BUILD_PROJECT_ID}
 set -xe
-./tf-wrapper.sh apply shared
+#./tf-wrapper.sh apply shared
 
 # While loop to be added for contionus apply
 ./tf-wrapper.sh init production 
 ./tf-wrapper.sh plan production 
 set +e
 ./tf-wrapper.sh validate production $(pwd)/../policy-library ${CLOUD_BUILD_PROJECT_ID}
-./tf-wrapper.sh apply production 
+#./tf-wrapper.sh apply production 
 
 MAX_RETRIES=3  # Adjust as needed
 attempts=0
@@ -79,7 +79,7 @@ while [[ $attempts -lt $MAX_RETRIES ]]; do
   ./tf-wrapper.sh plan nonproduction
   set +e
   ./tf-wrapper.sh validate nonproduction $(pwd)/../policy-library ${CLOUD_BUILD_PROJECT_ID}
-  ./tf-wrapper.sh apply nonproduction
+#  ./tf-wrapper.sh apply nonproduction
 
   # Check if any command failed (check exit code of last command)
   if [[ $? -ne 0 ]]; then
@@ -97,7 +97,7 @@ while [[ $attempts -lt $MAX_RETRIES ]]; do
   set +e
   ./tf-wrapper.sh validate development $(pwd)/../policy-library ${CLOUD_BUILD_PROJECT_ID}
   set -xe
-  ./tf-wrapper.sh apply development
+#  ./tf-wrapper.sh apply development
 
   if [[ $? -ne 0 ]]; then
     echo "Error: 3-network Development commands failed. Retrying..."
@@ -112,13 +112,13 @@ done
 ./tf-wrapper.sh plan management
 set +e
 ./tf-wrapper.sh validate management $(pwd)/../policy-library ${CLOUD_BUILD_PROJECT_ID}
-./tf-wrapper.sh apply management
+#./tf-wrapper.sh apply management
 
 ./tf-wrapper.sh init identity
 ./tf-wrapper.sh plan identity
 set +e
 ./tf-wrapper.sh validate identity $(pwd)/../policy-library ${CLOUD_BUILD_PROJECT_ID}
-./tf-wrapper.sh apply identity
+#./tf-wrapper.sh apply identity
 set +e
 
 unset GOOGLE_IMPERSONATE_SERVICE_ACCOUNT

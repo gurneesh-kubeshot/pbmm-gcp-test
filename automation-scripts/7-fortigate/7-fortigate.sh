@@ -39,7 +39,7 @@ terraform init
 # Run Terraform plan and apply
 terraform plan -input=false -out fortigate.tfplan
 set -xe
-terraform apply fortigate.tfplan
+#terraform apply fortigate.tfplan
 
 unset GOOGLE_IMPERSONATE_SERVICE_ACCOUNT
 set +e

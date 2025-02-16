@@ -11,7 +11,7 @@ base_dir=$(pwd)
 # export ORG_ID=$ORG_ID
 # export ROOT_FOLDER_ID=$ROOT_FOLDER_ID
 # export BILLING_ID=$BILLING_ID
-export GOOGLE_IMPERSONATE_SERVICE_ACCOUNT=sa-gcp-partners-test@sa-test-gcp.iam.gserviceaccount.com
+export GOOGLE_IMPERSONATE_SERVICE_ACCOUNT=labels-app-sa@vratant-test-prj.iam.gserviceaccount.com
 GOOGLE_APPLICATION_CREDENTIALS=$1
 
 echo "Base Directory:" $base_dir
@@ -49,7 +49,7 @@ then
   }"
 fi
 
-echo "$content" >> variables.tf 
+echo "$content" >> variables.tf
 
 cat ./provider.tf
 cat ./variables.tf
@@ -68,7 +68,7 @@ set +e
 terraform plan -var="gcp_credentials_file=$GOOGLE_APPLICATION_CREDENTIALS" -input=false -out bootstrap.tfplan
 
 #-var="gcp_credentials_file=$GOOGLE_APPLICATION_CREDENTIALS"
-terraform apply bootstrap.tfplan
+#terraform apply bootstrap.tfplan
 
 # Get service account and bucket outputs
 export network_step_sa=$(terraform output -raw networks_step_terraform_service_account_email)
@@ -105,4 +105,3 @@ echo $CLOUD_BUILD_PROJECT_ID
 cd ..
 
 pwd
-
