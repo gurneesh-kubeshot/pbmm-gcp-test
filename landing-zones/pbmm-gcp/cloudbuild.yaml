@@ -20,7 +20,7 @@ steps:
     args:
     - -c
     - |
-      cd pbmm-gcp-test/landing-zones/pbmm-gcp
+      cd pbmm-gcp-test
       curl -fsSL https://apt.releases.hashicorp.com/gpg |  apt-key add -
       apt-add-repository "deb [arch=amd64] https://apt.releases.hashicorp.com $(lsb_release -cs) main"
       apt-get install -y wget unzip
