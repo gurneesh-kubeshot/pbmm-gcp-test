@@ -1,0 +1,9 @@
+pyyaml>=6.0.1
+jsonschema>=4.19.0
+pytest>=7.4.0
+google-cloud-build>=3.11.0
+google-cloud-storage>=2.8.0
+google-auth>=2.22.0
+google-api-python-client>=2.0.0
+google-cloud-core>=2.3.0
+rich>=13.7.0 
