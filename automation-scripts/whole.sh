@@ -76,8 +76,23 @@ sed -i'' -e "s|DEFAULT_REGION_REPLACE_ME|${REGION}|" ./terraform.tfvars
 terraform init
 terraform validate
 
-# Show plan
-terraform plan -out=tfplan
+# Create a timestamp for the plan file
+TIMESTAMP=$(date +%Y%m%d_%H%M%S)
+PLAN_FILE="terraform_plan_${TIMESTAMP}.txt"
+
+# Show plan and save to file
+echo "Saving plan to ${PLAN_FILE}"
+terraform plan -out=tfplan | tee "${PLAN_FILE}"
+
+# Upload plan to GCS
+echo "Uploading plan to GCS bucket"
+BUCKET_NAME="${PROJECT_ID}-terraform-plans"
+if ! gsutil ls -b "gs://${BUCKET_NAME}" >/dev/null 2>&1; then
+    echo "Creating bucket ${BUCKET_NAME}"
+    gsutil mb -p "${PROJECT_ID}" "gs://${BUCKET_NAME}"
+fi
+gsutil cp "${PLAN_FILE}" "gs://${BUCKET_NAME}/bootstrap/${PLAN_FILE}"
+echo "Plan file uploaded to: gs://${BUCKET_NAME}/bootstrap/${PLAN_FILE}"
 
 # Apply if in apply mode
 if [ "$MODE" == "apply" ]; then
