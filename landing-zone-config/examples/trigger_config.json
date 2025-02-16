@@ -1,0 +1,9 @@
+{
+    "environment": "development",
+    "github_owner": "your-org",
+    "github_repo": "landing-zones",
+    "branch": "main",
+    "sa_key_secret": "terraform-sa-key",
+    "domain": "example.com",
+    "config_bucket": "my-landing-zone-configs"
+} 

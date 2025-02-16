@@ -1,0 +1,29 @@
+# Cloud Build Trigger Configuration
+# Environment for this deployment (development/production/etc)
+environment: development
+
+# GitHub repository details
+github_owner: kubeshot
+github_repo: landing-zones
+branch: main
+
+# GCP configuration
+sa_key_secret: sa-111-secops  # Secret Manager secret name containing service account key
+domain: www.neosecai.com
+
+# Optional: GCS bucket for storing configurations
+config_bucket: my-landing-zone-configs
+
+# Additional optional settings
+description: "PBMM Landing Zone deployment trigger"  # Optional description
+tags:  # Optional tags for the trigger
+  - landing-zone
+  - pbmm
+  - terraform
+
+# Notification settings (optional)
+notifications:
+  email:
+    recipients:
+      - devops@example.com
+      - security@example.com 

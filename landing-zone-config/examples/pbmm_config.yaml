@@ -1,0 +1,150 @@
+version: "1.0"
+landing_zone:
+  type: "pbmm-gcp"
+
+bootstrap:
+  org_id: "123456789012"
+  billing_account: "ABCDEF-GHIJKL-MNOPQR"
+  default_region: "northamerica-northeast1"
+  groups:
+    create_required_groups: true
+    create_optional_groups: true
+    billing_project: "my-bootstrap-project"
+    required_groups:
+      group_org_admins: "gcp-organization-admins@example.com"
+      group_billing_admins: "gcp-billing-admins@example.com"
+      billing_data_users: "gcp-billing-data@example.com"
+      audit_data_users: "gcp-audit-data@example.com"
+      monitoring_workspace_users: "gcp-monitoring-workspace@example.com"
+    optional_groups:
+      gcp_security_reviewer: "gcp-security-reviewer@example.com"
+      gcp_network_viewer: "gcp-network-viewer@example.com"
+      gcp_scc_admin: "gcp-scc-admin@example.com"
+      gcp_global_secrets_admin: "gcp-global-secrets-admin@example.com"
+      gcp_kms_admin: "gcp-kms-admin@example.com"
+
+org:
+  parent_folder: "folders/12345678"
+  billing_data_users: "gcp-billing-data@example.com"
+  audit_data_users: "gcp-audit-data@example.com"
+  scc_notification_name: "my-scc-notification"
+  scc_notifications_filter: "state = \"ACTIVE\""
+
+environments:
+  - name: "development"
+    environment_code: "d"
+    monitoring:
+      enable_monitoring: true
+      monitoring_workspace_users: "gcp-monitoring-workspace@example.com"
+  - name: "non-production"
+    environment_code: "n"
+    monitoring:
+      enable_monitoring: true
+      monitoring_workspace_users: "gcp-monitoring-workspace@example.com"
+  - name: "production"
+    environment_code: "p"
+    monitoring:
+      enable_monitoring: true
+      monitoring_workspace_users: "gcp-monitoring-workspace@example.com"
+
+networking:
+  enable_hub_and_spoke: true
+  enable_vpn: true
+  dns_enable_logging: true
+  shared_vpc_host_project_id: "shared-vpc-host"
+  base_network:
+    network_name: "base-network"
+    subnets:
+      - subnet_name: "subnet-01"
+        subnet_ip: "10.0.0.0/24"
+        subnet_region: "northamerica-northeast1"
+      - subnet_name: "subnet-02"
+        subnet_ip: "10.0.1.0/24"
+        subnet_region: "northamerica-northeast1"
+
+projects:
+  common:
+    billing_account: "ABCDEF-GHIJKL-MNOPQR"
+    parent_folder: "folders/12345678"
+    vpc_type: "base"
+    alert_spent_percents: [0.5, 0.75, 0.9, 0.95]
+    alert_pubsub_topic: "billing-alerts"
+    budget_amount: 1000
+  environments:
+    - environment: "development"
+      projects:
+        - name: "sample-app-dev"
+          apis: 
+            - "compute.googleapis.com"
+            - "container.googleapis.com"
+          labels:
+            environment: "development"
+            application: "sample-app"
+    - environment: "production"
+      projects:
+        - name: "sample-app-prod"
+          apis:
+            - "compute.googleapis.com"
+            - "container.googleapis.com"
+          labels:
+            environment: "production"
+            application: "sample-app"
+
+app_infra:
+  environments:
+    - environment: "development"
+      business_units:
+        - name: "bu1"
+          gke_clusters:
+            - name: "gke-dev-1"
+              region: "northamerica-northeast1"
+              network_config:
+                network: "dev-network"
+                subnetwork: "dev-subnet"
+                ip_range_pods: "10.10.0.0/16"
+                ip_range_services: "10.20.0.0/16"
+    - environment: "production"
+      business_units:
+        - name: "bu1"
+          gke_clusters:
+            - name: "gke-prod-1"
+              region: "northamerica-northeast1"
+              network_config:
+                network: "prod-network"
+                subnetwork: "prod-subnet"
+                ip_range_pods: "10.30.0.0/16"
+                ip_range_services: "10.40.0.0/16"
+
+org_policies:
+  policy_boolean:
+    vmExternalIpAccess: false
+    skipDefaultNetworkCreation: true
+    disableSerialPortAccess: true
+    disableDefaultIamGrantsServiceAccounts: true
+  policy_list:
+    restrictVpcPeering:
+      - "under:folders/12345678"
+    restrictSharedVpcSubnetworks:
+      - "projects/host-project"
+    restrictSharedVpcHostProjects:
+      - "projects/host-project"
+
+fortigate:
+  enabled: true
+  version: "7.2.3"
+  license_type: "byol"
+  config:
+    ha_enabled: true
+    regions:
+      - "northamerica-northeast1"
+    machine_type: "n2-standard-4"
+    service_account: "fortigate-sa@project-id.iam.gserviceaccount.com"
+    networks:
+      - name: "external"
+        cidr: "192.168.1.0/24"
+      - name: "internal"
+        cidr: "192.168.2.0/24"
+      - name: "hasync"
+        cidr: "192.168.3.0/24"
+      - name: "mgmt"
+        cidr: "192.168.4.0/24"
