@@ -4,8 +4,15 @@ import yaml
 from jsonschema import validate, ValidationError
 from typing import Dict, Any
 
-from .schema import LANDING_ZONE_SCHEMA
+from .lz_schemas.base import BASE_SCHEMA
+from .lz_schemas.pbmm_gcp import SCHEMA as PBMM_GCP_SCHEMA
+from .lz_schemas.gcp import SCHEMA as GCP_SCHEMA
 
+# Registry of landing zone schemas
+LANDING_ZONE_SCHEMAS = {
+    "pbmm-gcp": PBMM_GCP_SCHEMA,
+    "gcp": GCP_SCHEMA
+}
 
 class ConfigValidator:
     """Validator for the landing zone configuration."""
@@ -22,6 +29,7 @@ class ConfigValidator:
 
         Raises:
             yaml.YAMLError: If the YAML file is invalid.
+            FileNotFoundError: If the configuration file is not found.
         """
         try:
             with open(config_path, 'r') as f:
@@ -41,7 +49,19 @@ class ConfigValidator:
             ValidationError: If the configuration is invalid.
         """
         try:
-            validate(instance=config, schema=LANDING_ZONE_SCHEMA)
+            # First validate against base schema
+            validate(instance=config, schema=BASE_SCHEMA)
+            
+            # Get the landing zone type
+            lz_type = config["landing_zone"]["type"]
+            
+            # Get the specific schema for this landing zone type
+            if lz_type not in LANDING_ZONE_SCHEMAS:
+                raise ValidationError(f"Unsupported landing zone type: {lz_type}")
+            
+            # Validate against the specific landing zone schema
+            validate(instance=config, schema=LANDING_ZONE_SCHEMAS[lz_type])
+            
         except ValidationError as e:
             # Create a more user-friendly error message
             path = " -> ".join(str(p) for p in e.path)

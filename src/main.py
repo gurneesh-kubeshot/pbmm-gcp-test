@@ -5,8 +5,11 @@
 import argparse
 import sys
 import yaml
+import json
+import os
 import time
 from typing import Dict, Any
+from pathlib import Path
 from google.cloud.devtools import cloudbuild_v1
 from config.validator import ConfigValidator
 from rich.console import Console
@@ -29,6 +32,9 @@ Examples:
   
   Deploy a configuration:
     %(prog)s deploy path/to/config.yaml --project-id=my-project [--progress]
+  
+  Convert YAML to Terraform variables:
+    %(prog)s convert path/to/config.yaml path/to/output.tfvars [--common-only]
         """
     )
 
@@ -44,7 +50,92 @@ Examples:
     deploy_parser.add_argument('--project-id', required=True, help='GCP project ID')
     deploy_parser.add_argument('--progress', action='store_true', help='Show build progress')
 
+    # Convert command
+    convert_parser = subparsers.add_parser('convert', help='Convert YAML configuration to Terraform variables')
+    convert_parser.add_argument('config_file', help='Path to the configuration YAML file')
+    convert_parser.add_argument('output_file', help='Path to the output .tfvars file')
+    convert_parser.add_argument('--common-only', action='store_true', help='Extract only common configuration')
+
     return parser.parse_args()
+
+def yaml_to_tfvars(yaml_file: str, output_file: str, common_only: bool = False) -> bool:
+    """Convert YAML configuration to Terraform variables.
+    
+    Args:
+        yaml_file: Path to the YAML configuration file.
+        output_file: Path to the output .tfvars file.
+        common_only: Whether to extract only common configuration.
+    
+    Returns:
+        bool: True if conversion succeeds, False otherwise.
+    """
+    try:
+        with open(yaml_file, 'r') as f:
+            yaml_data = yaml.safe_load(f)
+        
+        # Convert YAML data to Terraform format
+        tfvars = {}
+        
+        # Process regions (common configuration)
+        if 'regions' in yaml_data:
+            tfvars['regions'] = yaml_data['regions']
+        
+        # Process business units if not common_only or if we need their common attributes
+        if 'business_units' in yaml_data:
+            tfvars['business_units'] = []
+            for bu in yaml_data['business_units']:
+                # Common business unit configuration
+                bu_config = {
+                    'business_code': bu.get('business_code', ''),
+                    'business_unit': bu.get('business_unit', ''),
+                    'location_kms': bu.get('location_kms', 'ca'),
+                    'location_gcs': bu.get('location_gcs', 'ca'),
+                    'tfc_org_name': bu.get('tfc_org_name', ''),
+                    'gcs_bucket_prefix': bu.get('gcs_bucket_prefix', 'bkt'),
+                    'folder_prefix': bu.get('folder_prefix', 'fldr'),
+                    'primary_contact': bu.get('primary_contact', 'none@no.ne'),
+                    'secondary_contact': bu.get('secondary_contact', 'none@no.ne'),
+                }
+                
+                # Add environment-specific configuration if not common_only
+                if not common_only:
+                    env_keys = ['development', 'nonproduction', 'production']
+                    bu_config['environments'] = {}
+                    
+                    for env in env_keys:
+                        if env in bu:
+                            env_config = bu[env]
+                            bu_config['environments'][env] = {
+                                'env_code': env_config.get('env_code', ''),
+                                'billing_code': env_config.get('billing_code', 'none'),
+                                'env_enabled': env_config.get('env_enabled', False),
+                                'windows_activation_enabled': env_config.get('windows_activation_enabled', False),
+                                'firewall_logging_enabled': env_config.get('firewall_logging_enabled', False),
+                                'optional_fw_rules_enabled': env_config.get('optional_fw_rules_enabled', False),
+                                'vpc_flow_logs_enabled': env_config.get('vpc_flow_logs_enabled', False),
+                                'peering_iap_fw_rules_enabled': env_config.get('peering_iap_fw_rules_enabled', False),
+                                'key_ring_name': env_config.get('key_ring_name', 'simple-keyring'),
+                                'key_name': env_config.get('key_name', 'simple-keyname'),
+                                'key_rotation_period': env_config.get('key_rotation_period', '7776000s'),
+                                'base': env_config.get('base', {}),
+                                'restricted': env_config.get('restricted', {})
+                            }
+                
+                tfvars['business_units'].append(bu_config)
+        
+        # Write to tfvars file
+        with open(output_file, 'w') as f:
+            for key, value in tfvars.items():
+                if isinstance(value, (dict, list)):
+                    f.write(f'{key} = {json.dumps(value, indent=2)}\n')
+                else:
+                    f.write(f'{key} = "{value}"\n')
+        
+        print(f"✅ Successfully converted {yaml_file} to {output_file}")
+        return True
+    except Exception as e:
+        print(f"❌ Error converting YAML to Terraform variables: {str(e)}", file=sys.stderr)
+        return False
 
 def validate_config(config_file: str) -> tuple[bool, Dict[str, Any] | None]:
     """Validate the configuration file.
@@ -139,6 +230,43 @@ def monitor_build_progress(operation, project_id: str):
             
             time.sleep(5)  # Poll every 5 seconds
 
+def convert_environment_configs(base_dir: str) -> bool:
+    """Convert YAML configurations for all environments to Terraform variables.
+    
+    Args:
+        base_dir: Base directory containing the business_units directory
+        
+    Returns:
+        bool: True if conversion succeeds, False otherwise
+    """
+    try:
+        business_units_dir = os.path.join(base_dir, '4-projects/business_units')
+        environments = ['development', 'nonproduction', 'production']
+        
+        for env in environments:
+            env_dir = os.path.join(business_units_dir, env)
+            if not os.path.exists(env_dir):
+                continue
+                
+            config_file = os.path.join(env_dir, 'config.yaml')
+            if not os.path.exists(config_file):
+                continue
+            
+            # Convert to environment-specific tfvars
+            env_tfvars = os.path.join(env_dir, f'{env}.auto.tfvars')
+            if not yaml_to_tfvars(config_file, env_tfvars, False):
+                return False
+            
+            # Extract common configuration
+            common_tfvars = os.path.join(env_dir, 'common.auto.tfvars')
+            if not yaml_to_tfvars(config_file, common_tfvars, True):
+                return False
+    
+        return True
+    except Exception as e:
+        print(f"❌ Error converting environment configurations: {str(e)}", file=sys.stderr)
+        return False
+
 def submit_build(project_id: str, config: Dict[str, Any], show_progress: bool = False) -> bool:
     """Submit a Cloud Build job using the existing cloudbuild.yaml.
     
@@ -151,6 +279,10 @@ def submit_build(project_id: str, config: Dict[str, Any], show_progress: bool = 
         bool: True if submission succeeds, False otherwise
     """
     try:
+        # First convert all environment configurations
+        if not convert_environment_configs('landing-zones/pbmm-gcp'):
+            return False
+
         # Create the Cloud Build client
         client = cloudbuild_v1.CloudBuildClient()
 
@@ -235,6 +367,9 @@ def main():
         
         # Then submit the build
         success = submit_build(args.project_id, config, args.progress)
+        sys.exit(0 if success else 1)
+    elif args.command == 'convert':
+        success = yaml_to_tfvars(args.config_file, args.output_file, args.common_only)
         sys.exit(0 if success else 1)
 
 if __name__ == '__main__':

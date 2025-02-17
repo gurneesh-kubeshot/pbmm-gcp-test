@@ -16,9 +16,21 @@ base_dir=$(pwd)
 cd $base_dir/4-projects
 
 ls -la
+
 #copy the wrapper script and set read,write,execute permissions
 cp ../build/tf-wrapper.sh .
 chmod 755 ./tf-wrapper.sh
+
+# Convert YAML configurations to Terraform variables using main.py
+for env in development nonproduction production; do
+  if [ -f "./business_units/${env}/config.yaml" ]; then
+    # Convert to environment-specific tfvars
+    python3 ../../src/main.py convert "./business_units/${env}/config.yaml" "./business_units/${env}/${env}.auto.tfvars"
+    
+    # Extract common configuration to common.auto.tfvars
+    python3 ../../src/main.py convert "./business_units/${env}/config.yaml" "./business_units/${env}/common.auto.tfvars" --common-only
+  fi
+done
 
 ls -la ./business_units/development/
 ls -la ./business_units/nonproduction/
@@ -34,8 +46,6 @@ sed -i'' -e "s/REMOTE_STATE_BUCKET/${remote_state_bucket}/" ./common.auto.tfvars
 #Setting the Variable
 export GOOGLE_IMPERSONATE_SERVICE_ACCOUNT=$(terraform -chdir="../0-bootstrap/" output -raw projects_step_terraform_service_account_email)
 echo ${GOOGLE_IMPERSONATE_SERVICE_ACCOUNT}
-
-
 
 #Terraform init,plan,validate,apply for development env
 # sleep 120s
@@ -104,7 +114,6 @@ set +e
 set -xe
 #./tf-wrapper.sh apply identity
 set +e
-
 
 unset GOOGLE_IMPERSONATE_SERVICE_ACCOUNT
 
