@@ -1,70 +1,170 @@
 # Landing Zone Configuration Tool
 
-A tool for validating and managing landing zone configurations.
+A Python-based tool for managing and deploying Google Cloud Platform landing zones. This tool supports both standard GCP and PBMM GCP landing zone configurations.
+
+## Features
+
+- YAML-based configuration
+- Multiple landing zone type support (GCP and PBMM-GCP)
+- Automated Terraform variable file generation
+- Cloud Build integration for deployment
+- Progress monitoring for builds
+- Configuration validation
+
+## Prerequisites
+
+- Python 3.7+
+- Google Cloud SDK
+- Terraform 1.6.0+
+- Required Python packages:
+  - pyyaml
+  - google-cloud-devtools-cloudbuild
+  - rich
+  - jsonschema
 
 ## Installation
 
-### Development Installation
+1. Clone the repository:
 ```bash
-# Clone the repository
 git clone <repository-url>
-cd landing-zone-config
-
-# Create and activate a virtual environment (optional but recommended)
-python -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
-
-# Install in development mode
-pip install -e .
+cd <repository-directory>
 ```
 
-### Production Installation
+2. Install dependencies:
 ```bash
-pip install .
+pip install -r requirements.txt
 ```
 
 ## Usage
 
-### Validating a Configuration
+The tool provides three main commands:
+
+### 1. Validate Configuration
+
+Validates a YAML configuration file against the schema:
+
 ```bash
-# Using the installed command
-lz-config validate path/to/config.yaml
-
-# Or running directly
-python src/main.py validate path/to/config.yaml
+python3 src/main.py validate path/to/config.yaml [--landing-zone-type=<type>]
 ```
 
-### Example Configuration
-See the `examples/pbmm_config.yaml` for a complete example configuration.
+### 2. Convert YAML to Terraform Variables
 
-## Development
+Converts a YAML configuration to Terraform variables:
 
-### Running Tests
 ```bash
-pip install pytest
-pytest tests/
+python3 src/main.py convert path/to/config.yaml path/to/output.tfvars [--common-only] [--landing-zone-type=<type>]
 ```
 
-### Project Structure
+### 3. Deploy Configuration
+
+Deploys a configuration using Cloud Build:
+
+```bash
+python3 src/main.py deploy path/to/config.yaml --project-id=<project-id> [--progress] [--landing-zone-type=<type>]
 ```
-landing-zone-config/
+
+### Common Options
+
+- `--landing-zone-type`: Specify the landing zone type (choices: 'pbmm-gcp', 'gcp')
+- `--progress`: Show build progress (for deploy command)
+- `--common-only`: Extract only common configuration (for convert command)
+
+## Configuration Examples
+
+### Standard GCP Landing Zone
+
+```yaml
+version: "1.0"
+landing_zone:
+  type: "gcp"
+
+bootstrap:
+  org_id: "123456789012"
+  billing_account: "ABC123-DEF456-GHI789"
+  default_region: "us-central1"
+
+org:
+  parent_folder: "folders/987654321"
+  scc_notification_name: "security-alerts"
+
+environments:
+  - name: "development"
+    environment_code: "d"
+  - name: "production"
+    environment_code: "p"
+
+# ... additional configuration ...
+```
+
+### PBMM GCP Landing Zone
+
+```yaml
+version: "1.0"
+landing_zone:
+  type: "pbmm-gcp"
+
+bootstrap:
+  org_id: "123456789012"
+  billing_account: "ABC123-DEF456-GHI789"
+  default_region: "northamerica-northeast1"
+  groups:
+    create_required_groups: true
+    required_groups:
+      group_org_admins: "gcp-organization-admins@example.com"
+      # ... additional groups ...
+
+# ... additional configuration ...
+```
+
+## Directory Structure
+
+```
+.
 ├── src/
-│   ├── config/
-│   │   ├── schema.py        # YAML schema definitions
-│   │   └── validator.py     # Configuration validator
-│   └── main.py             # CLI entry point
-├── tests/
-│   └── test_validator.py   # Validator tests
+│   ├── main.py
+│   └── config/
+│       ├── validator.py
+│       └── lz_schemas/
+│           ├── base.py
+│           ├── gcp.py
+│           └── pbmm_gcp.py
+├── landing-zones/
+│   ├── gcp-landing-zone/
+│   │   ├── cloudbuild.yaml
+│   │   └── automation-scripts/
+│   │       └── deploy.sh
+│   └── pbmm-gcp/
+│       ├── cloudbuild.yaml
+│       └── automation-scripts/
+│           └── deploy.sh
 └── examples/
-    └── pbmm_config.yaml    # Example configuration
+    ├── gcp_config.yaml
+    └── pbmm_config.yaml
 ```
+
+## Landing Zone Types
+
+### Standard GCP Landing Zone
+- Basic GCP organization structure
+- Environment-based project organization
+- Network and security controls
+- Application infrastructure support
+
+### PBMM GCP Landing Zone
+- Enhanced security controls
+- Business unit organization
+- Compliance with Protected B, Medium Integrity, Medium Availability (PBMM)
+- Additional security groups and IAM controls
+- Fortigate integration
 
 ## Contributing
+
 1. Fork the repository
 2. Create a feature branch
-3. Make your changes
-4. Run the tests
-5. Submit a pull request
+3. Commit your changes
+4. Push to the branch
+5. Create a Pull Request
 
 ## License
-[Your chosen license] 
+
+[Add your license information here] 
