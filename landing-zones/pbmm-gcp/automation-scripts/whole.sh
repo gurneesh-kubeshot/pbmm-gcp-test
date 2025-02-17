@@ -53,15 +53,6 @@ fi
 # Export credentials
 export GOOGLE_APPLICATION_CREDENTIALS="$SA_KEY_FILE"
 
-# Get Fortigate licenses if needed
-if [ -d "$landing_zone_path/7-fortigate/shared" ]; then
-    cd "$landing_zone_path/7-fortigate/shared"
-    gcloud secrets versions access latest --secret=license1 --project="$PROJECT_ID" > license1.lic
-    gcloud secrets versions access latest --secret=license2 --project="$PROJECT_ID" > license2.lic
-    echo "Listing Fortigate Files"
-    ls "$landing_zone_path/7-fortigate/shared"
-fi
-
 # Bootstrap stage
 cd "$landing_zone_path/0-bootstrap"
 ./prep.sh tf_local
