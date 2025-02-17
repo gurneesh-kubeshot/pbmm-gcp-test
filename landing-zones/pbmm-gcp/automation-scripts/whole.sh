@@ -13,7 +13,7 @@ usage() {
 }
 
 # Default values
-LANDING_ZONE_DIR="landing-zones/pbmm-gcp"
+LANDING_ZONE_DIR="."
 MODE="plan"
 
 # Parse command line arguments

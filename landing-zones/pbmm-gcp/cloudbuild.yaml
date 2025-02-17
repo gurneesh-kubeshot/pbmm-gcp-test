@@ -49,11 +49,12 @@ steps:
       echo "ORG_ID: ${_ORG_ID}"
       echo "ROOT_FOLDER_ID: ${_ROOT_FOLDER_ID}"
       echo "BILLING_ID: ${_BILLING_ID}"
+      cd landing-zones/pbmm-gcp
       chmod +x automation-scripts/whole.sh
       chmod +x ./0-bootstrap/prep.sh
       ./automation-scripts/whole.sh -k /workspace/sa-key.json -p ${_PROJECT_ID} -m plan
 
-logsBucket: 'gs://tef-cb-logs-bucket/cloudbuild-logs'
+logsBucket: 'gs://build-logs-vratant-test-prj/cloudbuild-logs'
 
 availableSecrets:
   secretManager:
