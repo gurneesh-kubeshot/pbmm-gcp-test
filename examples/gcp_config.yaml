@@ -35,7 +35,6 @@ projects:
           apis:
             - "compute.googleapis.com"
             - "container.googleapis.com"
-            - "cloudbuild.googleapis.com"
           labels:
             environment: "development"
             application: "app1"
@@ -61,8 +60,8 @@ app_infra:
               network_config:
                 network: "app-network"
                 subnetwork: "app-subnet"
-                ip_range_pods: "gke-pods-range"
-                ip_range_services: "gke-services-range"
+                ip_range_pods: "10.0.0.0/16"
+                ip_range_services: "10.1.0.0/16"
     - environment: "production"
       business_units:
         - name: "bu1"
