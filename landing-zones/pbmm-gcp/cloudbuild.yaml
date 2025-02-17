@@ -14,61 +14,46 @@ steps:
       echo "$$SECRET" > /workspace/sa-key.json
     secretEnv: ['SECRET']
 
-  # Install dependencies and run deployment
-  - id: 'deploy'
+  - id: 'Install Tools and Perform Deployment'
     name: gcr.io/cloud-builders/gcloud
     entrypoint: 'bash'
     args:
     - -c
     - |
       cd pbmm-gcp-test
-      
-      # Install system dependencies
-      apt-get update && apt-get install -y \
-        wget \
-        unzip \
-        python3 \
-        python3-pip \
-        dos2unix \
-        jq \
-        google-cloud-sdk \
-        google-cloud-cli-terraform-tools
-      
-      # Install Terraform
+      curl -fsSL https://apt.releases.hashicorp.com/gpg |  apt-key add -
+      apt-add-repository "deb [arch=amd64] https://apt.releases.hashicorp.com $(lsb_release -cs) main"
+      apt-get install -y wget unzip
       wget https://releases.hashicorp.com/terraform/1.6.0/terraform_1.6.0_linux_amd64.zip
       unzip terraform_1.6.0_linux_amd64.zip
       mv terraform /usr/local/bin/
       chmod +x /usr/local/bin/terraform
-      
-      # Install Python dependencies
+      terraform --version
+      apt-get update && apt-get install dos2unix
+      apt-get update && apt-get install google-cloud-sdk
+      apt-get install google-cloud-cli-terraform-tools -y
+      apt-get install jq -y
+      apt update && apt install python3 python3-pip -y
       pip3 install pyyaml google-cloud-devtools-cloudbuild rich jsonschema
-      
-      # Set file permissions
+      ls -l
       find . -type f -name "*.sh" | xargs chmod a+x
       find . -type f -name "*.sh" | xargs dos2unix
-      
-      # Set environment variables
       export SUPER_ADMIN_EMAIL=$_SUPER_ADMIN_EMAIL
       export REGION=${_REGION}
       export ORG_ID=${_ORG_ID}
       export ROOT_FOLDER_ID=${_ROOT_FOLDER_ID}
       export BILLING_ID=${_BILLING_ID}
       export DOMAIN=${_DOMAIN}
-      
       echo "Environment variables set:"
       echo "DOMAIN: ${_DOMAIN}"
       echo "REGION: ${_REGION}"
       echo "ORG_ID: ${_ORG_ID}"
       echo "ROOT_FOLDER_ID: ${_ROOT_FOLDER_ID}"
       echo "BILLING_ID: ${_BILLING_ID}"
-      
-      # Run deployment script
       cd landing-zones/pbmm-gcp
-      chmod +x automation-scripts/deploy.sh
-      ./automation-scripts/deploy.sh \
-        -k /workspace/sa-key.json \
-        -p ${_PROJECT_ID} \
-        -m plan
+      chmod +x automation-scripts/whole.sh
+      chmod +x ./0-bootstrap/prep.sh
+      ./automation-scripts/whole.sh -k /workspace/sa-key.json -p ${_PROJECT_ID} -m plan
 
 logsBucket: 'gs://build-logs-vratant-test-prj/cloudbuild-logs'
 
