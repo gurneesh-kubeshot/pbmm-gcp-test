@@ -1,153 +1,173 @@
-Create different private repositries for each stage(Names need not to be same)
-    Repo 1: gcp-0-bootstrap-repo 
-    Repo 2: gcp-1-org-repo
-    Repo 3: gcp-2-enviornments-repo
-    Repo 4: gcp-3-networks-dual-repo
-    Repo 5: gcp-3-networks-hubandspoke-repo
+# Deploying GCP Landing Zone
 
-                DEPLOYING BOOTSTRAP
-1. The repo should have the following structure
-        /gcp-0-bootstrap-repo
-            │── gcp-bootstrap/                        
-            │   │── envs/                             
-            │   │   ├── shared/                        # Contains Terraform bootstrap configurations
-            │   │   │   ├── main.tf && otherfiles      # Contains all files from 0-bootstap from landing zone
-            │   │
-            │   │── policy-library/                     # Contains policy guardrails(copied from parent dir in LZ)
-            │   │   ├── policies/
-            │   │   ├── constraints/
-            │   │   ├── README.md
-            │   │
-            │   │── .github/workflows/                  # GitHub Actions workflows for CI/CD(Copied from build dir in LZ)
-            │   │   ├── github-tf-plan.yaml             ## Can use different file for other cicd platforms
-            │   │   ├── github-tf-apply.yaml
-            │   │
-            │   │── tf-wrapper.sh                        # Terraform wrapper script
-            │   │── README.md
-3. Un-comment sections for your cicd platform from versions.tf,varialbes.tf, outputs.tf from each section
-4. Rename following files
-    mv ./cb.tf ./cb.tf.example
-    mv ./github.tf.example ./github.tf
-    mv ./terraform.example.tfvars ./terraform.tfvars
-5. Variables- update values in terraform.tfvars
-            - set your access token as env var (TF_VAR_gh_token)
-6. Validations- 
+## Repository Structure
 
-    ../../../terraform-example-foundation/scripts/validate-requirements.sh  -o <ORGANIZATION_ID> -b <BILLING_ACCOUNT_ID> -u <END_USER_EMAIL> -e
+Create different private repositories for each stage (names need not be the same):
 
-    gcloud beta terraform vet
+- **Repo 1**: `gcp-0-bootstrap-repo`
+- **Repo 2**: `gcp-1-org-repo`
+- **Repo 3**: `gcp-2-environments-repo`
+- **Repo 4**: `gcp-3-networks-dual-repo`
+- **Repo 5**: `gcp-3-networks-hubandspoke-repo`
 
-    terraform init
-    terraform plan -input=false -out bootstrap.tfplan
+---
 
-    export VET_PROJECT_ID=A-VALID-PROJECT-ID
-    terraform show -json bootstrap.tfplan > bootstrap.json
-    gcloud beta terraform vet bootstrap.json --policy-library="../../policy-library" --project ${VET_PROJECT_ID}
+## **Deploying Bootstrap**
 
-7. terraform apply bootstrap.tfplan
-8. Outputs-
-        export network_step_sa=$(terraform output -raw networks_step_terraform_service_account_email)
-        export projects_step_sa=$(terraform output -raw projects_step_terraform_service_account_email)
-        export cicd_project_id=$(terraform output -raw cicd_project_id)
+### **1. Repository Structure**
+```
+/gcp-0-bootstrap-repo
+│── gcp-bootstrap/
+│   │── envs/
+│   │   ├── shared/                     # Terraform bootstrap configurations
+│   │   │   ├── main.tf & other files    # All files from 0-bootstrap of the landing zone
+│   │
+│   │── policy-library/                  # Policy guardrails (copied from LZ)
+│   │   ├── policies/
+│   │   ├── constraints/
+│   │   ├── README.md
+│   │
+│   │── .github/workflows/               # GitHub Actions CI/CD workflows
+│   │   ├── github-tf-plan.yaml
+│   │   ├── github-tf-apply.yaml
+│   │
+│   │── tf-wrapper.sh                     # Terraform wrapper script
+│   │── README.md
+```
 
-        echo "CI/CD Project ID = ${cicd_project_id}"
-        echo "network step service account = ${network_step_sa}"
-        echo "projects step service account = ${projects_step_sa}"
-9. Migrate to remote backend
+### **2. Update Terraform Configurations**
+- Un-comment the required sections for your CI/CD platform in `versions.tf`, `variables.tf`, `outputs.tf`.
+- Rename the following files:
+```sh
+mv ./cb.tf ./cb.tf.example
+mv ./github.tf.example ./github.tf
+mv ./terraform.example.tfvars ./terraform.tfvars
+```
+- Update `terraform.tfvars` with required values.
+- Set access token as an environment variable: `TF_VAR_gh_token`.
 
-    export backend_bucket=$(terraform output -raw gcs_bucket_tfstate)
-    echo "backend_bucket = ${backend_bucket}"
+### **3. Validation Steps**
+```sh
+../../../terraform-example-foundation/scripts/validate-requirements.sh -o <ORG_ID> -b <BILLING_ACCOUNT_ID> -u <EMAIL> -e
+gcloud beta terraform vet
+terraform init
+terraform plan -input=false -out bootstrap.tfplan
+```
+```sh
+export VET_PROJECT_ID=<VALID_PROJECT_ID>
+terraform show -json bootstrap.tfplan > bootstrap.json
+gcloud beta terraform vet bootstrap.json --policy-library="../../policy-library" --project ${VET_PROJECT_ID}
+```
 
-    cp backend.tf.example backend.tf
-    cd ../../../
+### **4. Apply Terraform Plan**
+```sh
+terraform apply bootstrap.tfplan
+```
 
-    for i in `find . -name 'backend.tf'`; do sed -i'' -e "s/UPDATE_ME/${backend_bucket}/" $i; done
-    for i in `find . -name 'backend.tf'`; do sed -i'' -e "s/UPDATE_PROJECTS_BACKEND/${backend_bucket}/" $i; done
+### **5. Extract Outputs**
+```sh
+export network_step_sa=$(terraform output -raw networks_step_terraform_service_account_email)
+export projects_step_sa=$(terraform output -raw projects_step_terraform_service_account_email)
+export cicd_project_id=$(terraform output -raw cicd_project_id)
+```
 
-    cd gcp-bootstrap/envs/shared
+### **6. Migrate to Remote Backend**
+```sh
+export backend_bucket=$(terraform output -raw gcs_bucket_tfstate)
+echo "backend_bucket = ${backend_bucket}"
+cp backend.tf.example backend.tf
+```
+```sh
+for i in `find . -name 'backend.tf'`; do sed -i'' -e "s/UPDATE_ME/${backend_bucket}/" $i; done
+```
 
-10. Push to required branch and this will trigger the pipeline, check github actions output
-     
+### **7. Push to GitHub and Trigger Pipeline**
+Push to the required branch and check the GitHub Actions output.
 
-            DEPLOYING FURTHER STAGES
-1. Initialize and seed the repostries and change to non production branch
-        git commit --allow-empty -m 'repository seed'
-        git push --set-upstream origin main
+---
 
-        git checkout -b production
-        git push --set-upstream origin production
+## **Deploying Further Stages**
 
-        git checkout -b nonproduction
-        git push --set-upstream origin nonproduction
+### **1. Initialize Repositories**
+```sh
+git commit --allow-empty -m 'repository seed'
+git push --set-upstream origin main
+git checkout -b production
+git push --set-upstream origin production
+git checkout -b nonproduction
+git push --set-upstream origin nonproduction
+git checkout -b development
+git push --set-upstream origin development
+git checkout -b plan
+```
 
-        git checkout -b development
-        git push --set-upstream origin development
+### **2. Repository Structure**
+```
+/gcp-0-{stage}-repo
+│── gcp-{stage}/
+│   │── envs/
+│   │   ├── shared/                     # Terraform configurations
+│   │   │   ├── main.tf & other files   # All files from 0-bootstrap from landing zone
+│   │
+│   │── policy-library/                  # Policy guardrails (copied from LZ)
+│   │   ├── policies/
+│   │   ├── constraints/
+│   │   ├── README.md
+│   │
+│   │── .github/workflows/               # GitHub Actions CI/CD workflows
+│   │   ├── github-tf-plan.yaml
+│   │   ├── github-tf-apply.yaml
+│   │
+│   │── tf-wrapper.sh                     # Terraform wrapper script
+│   │── README.md
+```
 
-        git checkout -b plan
+### **3. Rename Configuration Files**
+```sh
+mv ./cb.tf ./cb.tf.example
+mv ./github.tf.example ./github.tf
+mv ./terraform.example.tfvars ./terraform.tfvars
+mv common.auto.example.tfvars common.auto.tfvars
+mv shared.auto.example.tfvars shared.auto.tfvars
+```
 
-2. The repo should have the following structure
-        /gcp-0-{stage}-repo
-            │── gcp-{stage}/                        
-            │   │── envs/                             
-            │   │   ├── shared/                        # Contains Terraform configurations
-            │   │   │   ├── main.tf && otherfiles      # Contains all files from 0-bootstap from landing zone
-            │   │
-            │   │── policy-library/                     # Contains policy guardrails(copied from parent dir in LZ)
-            │   │   ├── policies/
-            │   │   ├── constraints/
-            │   │   ├── README.md
-            │   │
-            │   │── .github/workflows/                  # GitHub Actions workflows for CI/CD(Copied from build dir in LZ)
-            │   │   ├── github-tf-plan.yaml             ## Can use different file for other cicd platforms
-            │   │   ├── github-tf-apply.yaml
-            │   │
-            │   │── tf-wrapper.sh                        # Terraform wrapper script
-            │   │── README.md.
+### **4. Update Variables**
+- Update `terraform.tfvars`.
+- If `shared.auto.tfvars` exists, update target_name_server_addresses.
+- Update `common/shared/development/production/nonproduction.auto.tfvars` if present.
+- Extract Access Context Manager ID:
+```sh
+export ORGANIZATION_ID=$(terraform -chdir="../gcp-bootstrap/envs/shared/" output -json common_config | jq '.org_id' --raw-output)
+export ACCESS_CONTEXT_MANAGER_ID=$(gcloud access-context-manager policies list --organization ${ORGANIZATION_ID} --format="value(name)")
+echo "access_context_manager_policy_id = ${ACCESS_CONTEXT_MANAGER_ID}"
+sed -i'' -e "s/ACCESS_CONTEXT_MANAGER_ID/${ACCESS_CONTEXT_MANAGER_ID}/" ./access_context.auto.tfvars
+```
 
-3. Rename following files(Some of them might not be present in all steps)
-    mv ./cb.tf ./cb.tf.example
-    mv ./github.tf.example ./github.tf
-    mv ./terraform.example.tfvars ./terraform.tfvars
-    mv common.auto.example.tfvars common.auto.tfvars
-    mv shared.auto.example.tfvars shared.auto.tfvars
-    mv access_context.auto.example.tfvars access_context.auto.tfvars
-    mv development.auto.example.tfvars development.auto.tfvars
-    mv nonproduction.auto.example.tfvars nonproduction.auto.tfvars
-    mv production.auto.example.tfvars production.auto.tfvars
+### **5. Update Remote State Bucket**
+```sh
+export backend_bucket=$(terraform -chdir="../gcp-bootstrap/envs/shared" output -raw gcs_bucket_tfstate)
+echo "remote_state_bucket = ${backend_bucket}"
+sed -i'' -e "s/REMOTE_STATE_BUCKET/${backend_bucket}/" ./envs/shared/terraform.tfvars
+```
 
-4. Variables- update values in terraform.tfvars
-            - If shared.auto.tfvars is present update with values for target_name_server_addresses
-            - update *common/shared/development/production/nonproduction*.auto.tfvars if present 
-            - Update the file access_context.auto.tfvars with the organization's access_context_manager_policy_id if present
-                    export ORGANIZATION_ID=$(terraform -chdir="../gcp-bootstrap/envs/shared/" output -json common_config | jq '.org_id' --raw-output)
+### **6. Commit & Merge**
+Push to `plan` branch, validate changes, then merge into `nonproduction` and finally `production`.
 
-                    export ACCESS_CONTEXT_MANAGER_ID=$(gcloud access-context-manager policies list --organization ${ORGANIZATION_ID} --format="value(name)")
+### **7. Run Terraform Commands (Network Step Only)**
+```sh
+export CICD_PROJECT_ID=$(terraform -chdir="../gcp-bootstrap/envs/shared/" output -raw cicd_project_id)
+export GOOGLE_IMPERSONATE_SERVICE_ACCOUNT=$(terraform -chdir="../gcp-bootstrap/envs/shared/" output -raw networks_step_terraform_service_account_email)
 
-                    echo "access_context_manager_policy_id = ${ACCESS_CONTEXT_MANAGER_ID}"
+./tf-wrapper.sh init shared
+./tf-wrapper.sh plan shared
+./tf-wrapper.sh validate shared $(pwd)/policy-library ${CICD_PROJECT_ID}
+./tf-wrapper.sh apply shared
+git push --set-upstream origin plan
+```
 
-                    sed -i'' -e "s/ACCESS_CONTEXT_MANAGER_ID/${ACCESS_CONTEXT_MANAGER_ID}/" ./access_context.auto.tfvars
+### **8. Cleanup**
+Before moving to the next step:
+```sh
+unset GOOGLE_IMPERSONATE_SERVICE_ACCOUNT
+```
 
-5. Update the remote_state_bucket variable with the backend bucket from previous step
-
-        export backend_bucket=$(terraform -chdir="../gcp-bootstrap/envs/shared" output -raw gcs_bucket_tfstate)
-
-        echo "remote_state_bucket = ${backend_bucket}"
-
-        sed -i'' -e "s/REMOTE_STATE_BUCKET/${backend_bucket}/" ./envs/shared/terraform.tfvars
-
-6. Commit changes and push to plan, if successfull merge the PR into non production branch, review and then merge into production branch
-**** from network step Only *****
-    export CICD_PROJECT_ID=$(terraform -chdir="../gcp-bootstrap/envs/shared/" output -raw cicd_project_id)
-    echo ${CICD_PROJECT_ID}
-    export GOOGLE_IMPERSONATE_SERVICE_ACCOUNT=$(terraform -chdir="../gcp-bootstrap/envs/shared/" output -raw networks_step_terraform_service_account_email)
-    echo ${GOOGLE_IMPERSONATE_SERVICE_ACCOUNT}
-
-    ./tf-wrapper.sh init shared
-    ./tf-wrapper.sh plan shared
-    ./tf-wrapper.sh validate shared $(pwd)/policy-library ${CICD_PROJECT_ID}
-    ./tf-wrapper.sh apply shared
-    git push --set-upstream origin plan
-
-    Before moving to next step:
-
-    unset GOOGLE_IMPERSONATE_SERVICE_ACCOUNT
